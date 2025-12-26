@@ -8,7 +8,7 @@ import requests
 
 # ================== НАЛАШТУВАННЯ ==================
 
-TOKEN = os.getenv("8453039217:AAE0_Q7eXLwmwSWrFpon9T6bQrokMYKEGTs")  # токен з Render
+TOKEN = os.getenv("8435790914:AAHOV7cyt-HIG3kEJk-7gE1zT31XvqKYgfk")  # токен з Render
 if not TOKEN:
     raise ValueError("TOKEN not found")
 
