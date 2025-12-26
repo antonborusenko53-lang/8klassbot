@@ -5,7 +5,9 @@ from threading import Thread
 
 # ================== НАЛАШТУВАННЯ ==================
 
-TOKEN = "8453039217:AAEAMbNGAjBAJNGqnVVF9wJeMzl6IDPP3HQ"
+import os
+TOKEN = os.getenv("TOKEN")
+bot = telebot.TeleBot(TOKEN)
 
 ADMINS = [1013047918, 5245235883]
 
