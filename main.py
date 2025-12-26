@@ -6,6 +6,8 @@ from threading import Thread
 # ================== НАЛАШТУВАННЯ ==================
 TOKEN = "8453039217:AAEZYmcyehIe1flEeLSMdz1G6VucRXLYPLM"
 bot = telebot.TeleBot(TOKEN)
+import requests
+requests.get(f"https://api.telegram.org/bot{8453039217:AAEZYmcyehIe1flEeLSMdz1G6VucRXLYPLM}/deleteWebhook")
 
 ADMINS = [1013047918, 5245235883]
 
