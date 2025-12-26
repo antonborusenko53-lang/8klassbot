@@ -1,146 +1,139 @@
 import telebot
 from telebot import types
-import json, os
-from datetime import datetime, timedelta
-from keep_alive import keep_alive
+from flask import Flask
+from threading import Thread
 
-keep_alive()  # запускаємо Flask сервер для UptimeRobot
+# ================== НАЛАШТУВАННЯ ==================
 
-TOKEN = "ВСТАВ_СЮДИ_TOKEN"  # <- заміни на свій токен
+TOKEN = "8453039217:AAEAMbNGAjBAJNGqnVVF9wJeMzl6IDPP3HQ"
+
 ADMINS = [1013047918, 5245235883]
 
+DAYS = ["Понеділок", "Вівторок", "Середа", "Четвер", "Пʼятниця"]
+
+homework = {
+    "Понеділок": "",
+    "Вівторок": "",
+    "Середа": "",
+    "Четвер": "",
+    "Пʼятниця": ""
+}
+
+user_state = {}
+
 bot = telebot.TeleBot(TOKEN)
-FILE = "data.json"
 
-# ---------- Завантаження даних ----------
-def load():
-    if not os.path.exists(FILE):
-        with open(FILE, "w", encoding="utf-8") as f:
-            json.dump({"dz": {}, "ogol": "", "rozklad": {}}, f)
-    with open(FILE, encoding="utf-8") as f:
-        return json.load(f)
+# ================== FLASK (UPTIME ROBOT) ==================
 
-def save(data):
-    with open(FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+app = Flask(__name__)
 
-# ---------- Кнопки ----------
-def main_kb(is_admin=False):
+@app.route('/')
+def home():
+    return "Bot is alive!"
+
+def run():
+    app.run(host="0.0.0.0", port=10000)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
+
+keep_alive()
+
+# ================== КНОПКИ ==================
+
+def main_keyboard(is_admin=False):
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    kb.add("📌 Сьогодні", "⏭ Завтра")
-    kb.add("📅 Розклад", "📚 ДЗ")
-    kb.add("📅 Розклад дзвінків")
-    kb.add("📢 Оголошення")
+    kb.add("📚 Домашнє завдання")
+    kb.add("📅 Розклад")
     if is_admin:
-        kb.add("➕ Додати ДЗ", "➖ Видалити ДЗ", "✏️ Змінити ДЗ")
-        kb.add("➕ Оголошення", "✏️ Змінити Оголошення")
+        kb.add("➕ Додати ДЗ")
     return kb
 
-def back_kb():
+def days_keyboard():
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    kb.add("⬅ Назад")
-    return kb
-
-# ---------- START ----------
-@bot.message_handler(commands=['start'])
-def start(m):
-    bot.send_message(
-        m.chat.id,
-        "👋 Бот 8 класу\nОбери дію 👇",
-        reply_markup=main_kb(m.from_user.id in ADMINS)
-    )
-
-# ---------- СЬОГОДНІ / ЗАВТРА ----------
-days_map = {0: "Понеділок", 1: "Вівторок", 2: "Середа", 3: "Четвер", 4: "Пʼятниця"}
-
-def show_day(chat_id, day):
-    data = load()
-    lessons = data["rozklad"].get(day)
-    if not lessons:
-        bot.send_message(chat_id, f"{day} — вихідний 🎉")
-        return
-    text = f"📅 {day}\n\n📚 Уроки:"
-    for i, l in enumerate(lessons, 1):
-        text += f"\n{i}. {l}"
-    dz = data["dz"].get(day, [])
-    if dz:
-        text += "\n\n📝 ДЗ:"
-        for t in dz:
-            if isinstance(t, list):
-                t = ''.join(t)
-            text += f"\n- {t}"
-    bot.send_message(chat_id, text)
-
-@bot.message_handler(func=lambda m: m.text == "📌 Сьогодні")
-def today(m):
-    day = days_map.get(datetime.now().weekday())
-    if not day:
-        bot.send_message(m.chat.id, "Сьогодні вихідний 🎉")
-        return
-    show_day(m.chat.id, day)
-
-@bot.message_handler(func=lambda m: m.text == "⏭ Завтра")
-def tomorrow(m):
-    day = days_map.get((datetime.now() + timedelta(days=1)).weekday())
-    if not day:
-        bot.send_message(m.chat.id, "Завтра вихідний 🎉")
-        return
-    show_day(m.chat.id, day)
-
-# ---------- РОЗКЛАД ----------
-@bot.message_handler(func=lambda m: m.text == "📅 Розклад")
-def schedule(m):
-    kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    for d in load()["rozklad"]:
+    for d in DAYS:
         kb.add(d)
-    kb.add("⬅ Назад")
-    bot.send_message(m.chat.id, "Оберіть день:", reply_markup=kb)
+    kb.add("⬅️ Назад")
+    return kb
 
-@bot.message_handler(func=lambda m: m.text in load()["rozklad"])
-def day_schedule(m):
-    show_day(m.chat.id, m.text)
+# ================== /start ==================
 
-# ---------- РОЗКЛАД ДЗВІНКІВ ----------
-@bot.message_handler(func=lambda m: m.text == "📅 Розклад дзвінків")
-def show_calls(m):
-    text = (
-        "🕘 Розклад дзвінків:\n"
-        "1 урок — 09:00-09:40\n"
-        "2 урок — 09:50-10:30\n"
-        "3 урок — 10:40-11:20\n"
-        "4 урок — 11:40-12:20\n"
-        "5 урок — 12:30-13:10\n"
-        "6 урок — 13:20-14:00\n"
-        "7 урок — 14:10-14:50"
+@bot.message_handler(commands=["start"])
+def start(message):
+    is_admin = message.from_user.id in ADMINS
+    bot.send_message(
+        message.chat.id,
+        "Привіт 👋\nЯ бот для домашніх завдань 📚",
+        reply_markup=main_keyboard(is_admin)
     )
-    bot.send_message(m.chat.id, text)
 
-# ---------- ДЗ ----------
-@bot.message_handler(func=lambda m: m.text == "📚 ДЗ")
-def show_dz(m):
-    dz_data = load()["dz"]
-    if not dz_data:
-        bot.send_message(m.chat.id, "ДЗ немає")
+# ================== ДЗ ==================
+
+@bot.message_handler(func=lambda m: m.text == "📚 Домашнє завдання")
+def show_homework(message):
+    text = "📚 Домашнє завдання:\n\n"
+    for day in DAYS:
+        if homework[day]:
+            text += f"🔹 {day}:\n{homework[day]}\n\n"
+    if text.strip() == "📚 Домашнє завдання:":
+        text += "Поки що нічого не задано 🙂"
+    bot.send_message(message.chat.id, text)
+
+# ================== ДОДАТИ ДЗ (АДМІН) ==================
+
+@bot.message_handler(func=lambda m: m.text == "➕ Додати ДЗ")
+def add_hw(message):
+    if message.from_user.id not in ADMINS:
         return
-    text = "📚 Домашнє завдання:"
-    for day, tasks in dz_data.items():
-        text += f"\n\n🔹 {day}:"
-        for t in tasks:
-            if isinstance(t, list):
-                t = ''.join(t)
-            text += f"\n- {t}"
-    bot.send_message(m.chat.id, text)
+    user_state[message.from_user.id] = {"step": "day"}
+    bot.send_message(message.chat.id, "Обери день:", reply_markup=days_keyboard())
 
-# ---------- ДОДАТИ, ВИДАЛИТИ, ЗМІНИТИ ДЗ ----------
-# (код як у попередньому пакеті — все працює)
+@bot.message_handler(func=lambda m: m.from_user.id in user_state)
+def process_hw(message):
+    state = user_state.get(message.from_user.id)
 
-# ---------- Оголошення ----------
-# (код як у попередньому пакеті — все працює)
+    if message.text == "⬅️ Назад":
+        user_state.pop(message.from_user.id, None)
+        bot.send_message(
+            message.chat.id,
+            "Головне меню",
+            reply_markup=main_keyboard(True)
+        )
+        return
 
-# ---------- Назад ----------
-@bot.message_handler(func=lambda m: m.text == "⬅ Назад")
-def back(m):
-    start(m)
+    if state["step"] == "day":
+        if message.text not in DAYS:
+            return
+        state["day"] = message.text
+        state["step"] = "text"
+        bot.send_message(message.chat.id, f"Введи ДЗ для {message.text}:")
 
-# ---------- RUN BOT ----------
-bot.polling()
+    elif state["step"] == "text":
+        homework[state["day"]] = message.text
+        user_state.pop(message.from_user.id)
+        bot.send_message(
+            message.chat.id,
+            "✅ Домашнє завдання збережено!",
+            reply_markup=main_keyboard(True)
+        )
+
+# ================== РОЗКЛАД ==================
+
+@bot.message_handler(func=lambda m: m.text == "📅 Розклад")
+def schedule(message):
+    bot.send_message(
+        message.chat.id,
+        "📅 Розклад дзвінків:\n\n"
+        "1️⃣ 09:00 – 09:40\n"
+        "2️⃣ 09:50 – 10:30\n"
+        "3️⃣ 10:40 – 11:20\n"
+        "4️⃣ 11:40 – 12:20\n"
+        "5️⃣ 12:30 – 13:10\n"
+        "6️⃣ 13:20 – 14:00\n"
+        "7️⃣ 14:10 – 14:50"
+    )
+
+# ================== ЗАПУСК ==================
+
+bot.infinity_polling()
