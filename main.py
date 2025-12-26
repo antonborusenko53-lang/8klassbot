@@ -4,9 +4,7 @@ from flask import Flask
 from threading import Thread
 
 # ================== НАЛАШТУВАННЯ ==================
-
-import os
-TOKEN = os.getenv("TOKEN")
+TOKEN = "8453039217:AAGBzZmUfAoeukx9pfU1X39abYsiKMqCieA"
 bot = telebot.TeleBot(TOKEN)
 
 ADMINS = [1013047918, 5245235883]
